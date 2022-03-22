@@ -52,15 +52,18 @@ do
     onboard=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/list?search_term='"${PUB_KEY[$index]}"'&limit=40&order_by=name&order=asc' | jq '.data[0].onboarding_number')
 #dali blokov
     All_block=$($SOLANA_PATH leader-schedule -u$CLUSTER | grep ${PUB_KEY[$index]} | wc -l)
-#done,skipnul, skyp%
-    STRING2=$($SOLANA_PATH -v block-production -u$CLUSTER | grep ${PUB_KEY[$index]} | awk 'NR == 1'| awk '{print $2,$4,$5}')
+#done,sdelal,skipnul, skyp%
+    STRING2=$($SOLANA_PATH -v block-production -u$CLUSTER | grep ${PUB_KEY[$index]} | awk 'NR == 1'| awk '{print $2,$3,$4,$5}')
     Done=$(echo "$STRING2" | awk '{print $1}')
     if [[ -z "$Done" ]]; then Done=0
         fi
-    skipped=$(echo "$STRING2" | awk '{print $2}')
+    sdelal_blokov=$(echo "$STRING2" | awk '{print $2}')
+    if [[ -z "$skipped" ]]; then sdelal_blokov=0
+        fi
+    skipped=$(echo "$STRING2" | awk '{print $3}')
     if [[ -z "$skipped" ]]; then skipped=0
         fi
-    skip_temp=$(echo "$STRING2" | awk '{print $3}')
+    skip_temp=$(echo "$STRING2" | awk '{print $4}')
     skip="${skip_temp%?}"
     if [[ -z "$skip" ]]; then skip=0
         fi    
@@ -81,44 +84,60 @@ do
         fi
 
     VER=$($SOLANA_PATH -u$CLUSTER validators --output json-compact | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .version '| sed 's/\"//g')
+    
+    comission=$(bc <<< "scale=3; (($epochCredits*5) - ($sdelal_blokov*3750))/1000000")
+    minus=${comission:0:1}
+    if [[ $minus = - ]]; then comission=$(bc <<< "scale=3; $comission * -1")
+       simvol1=${comission:0:1}
+       if [[ $simvol1 = . ]]; then comission="earn 0$comission"
+       else comission="earn $comission"  
+         fi
+    fi   
+
+    if [[ $minus = . ]]; then comission=0$comission
+    else comission=$comission
+    fi
+    
     PUB=$(echo ${PUB_KEY[$index]:0:10})
     info='"
 <b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']<code>
 '"All:"$All_block" Done:"$Done" skipped:"$skipped""'
 '"skip:"$skip%" Average:"$Average%""'
-epochCredits >['"$epochCredits"']
-mesto>['"$mesto_top"'] proc>['"$proc"']
-onboard > ['"$onboard"'] 
+сredits >['"$epochCredits"'] ['"$proc"'%]
+mesto>['"$mesto_top"'] onboard > ['"$onboard"']
 active_stk >>>['"$ACTIVE"']
 activating >>>['"$ACTIVATING"']
 deactivating >['"$DEACTIVATING"']
-my_balance >>>['"$BALANCE"'] 
-vote_balance>>['"$VOTE_BALANCE"']</code>"'
+balance>['"$BALANCE"']  
+vote_balance>>['"$VOTE_BALANCE"']
+comission>['"$comission"' sol]</code>"'
     
     if [[ $onboard == null ]]; then info='"
 <b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']<code>
 '"All:"$All_block" Done:"$Done" skipped:"$skipped""'
 '"skip:"$skip%" Average:"$Average%""'
-epochCredits >['"$epochCredits"']
-mesto>['"$mesto_top"'] proc>['"$proc"']
+сredits >['"$epochCredits"'] ['"$proc"'%]
+mesto>['"$mesto_top"'] 
 active_stk >>>['"$ACTIVE"']
 activating >>>['"$ACTIVATING"']
 deactivating >['"$DEACTIVATING"']
-my_balance >>>['"$BALANCE"'] 
-vote_balance>>['"$VOTE_BALANCE"']</code>"'
+balance>['"$BALANCE"']  
+vote_balance>>['"$VOTE_BALANCE"']
+comission>['"$comission"' sol]</code>"'
        fi
 
     if [[ $CLUSTER == m ]]; then info='"
 <b>'"${TEXT_NODE[$index]}"'</b> ['"$PUB"'] ['"$VER"']<code>
 '"All:"$All_block" Done:"$Done" skipped:"$skipped""'
 '"skip:"$skip%" Average:"$Average%""'
-epochCredits >['"$epochCredits"']
-mesto>['"$mesto_top"'] proc>['"$proc"']
+сredits >['"$epochCredits"'] ['"$proc"'%]
+mesto>['"$mesto_top"'] 
 active_stk >>>['"$ACTIVE"']
 activating >>>['"$ACTIVATING"']
 deactivating >['"$DEACTIVATING"']
-my_balance >>>['"$BALANCE"'] 
-vote_balance>>['"$VOTE_BALANCE"']</code>"'
+balance>['"$BALANCE"']  
+vote_balance>>['"$VOTE_BALANCE"']
+comission>['"$comission"' sol]</code>"'
      fi
     echo "Нода в порядке" ${TEXT_NODE[$index]}
 curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
