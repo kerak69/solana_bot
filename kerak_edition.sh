@@ -34,7 +34,7 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
     fi
 done
 
-    if (( $(echo "$(date +%M) < 55" | bc -l) ))
+    if (( $(echo "$(date +%M) < 5" | bc -l) ))
 then
 
 mesto_top_temp=$($SOLANA_PATH validators -u$CLUSTER --sort=credits -r -n > $HOME/solana_bot/mesto_top$CLUSTER.txt )
