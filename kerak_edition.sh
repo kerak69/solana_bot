@@ -34,7 +34,7 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
     fi
 done
 
-    if (( $(echo "$(date +%M) < 5" | bc -l) ))
+    if (( $(echo "$(date +%M) < 55" | bc -l) ))
 then
 
 mesto_top_temp=$($SOLANA_PATH validators -u$CLUSTER --sort=credits -r -n > $HOME/solana_bot/mesto_top$CLUSTER.txt )
@@ -58,7 +58,7 @@ do
     if [[ -z "$Done" ]]; then Done=0
         fi
     sdelal_blokov=$(echo "$STRING2" | awk '{print $2}')
-    if [[ -z "$skipped" ]]; then sdelal_blokov=0
+    if [[ -z "$sdelal_blokov" ]]; then sdelal_blokov=0
         fi
     skipped=$(echo "$STRING2" | awk '{print $3}')
     if [[ -z "$skipped" ]]; then skipped=0
