@@ -3,6 +3,7 @@ export LC_NUMERIC="en_US.UTF-8"
 SOLANA_PATH="$HOME/.local/share/solana/install/active_release/bin/solana" #Обрати вниманеи что путь со словом "solana" его не удалять!!!
 #Cluster: m-mainnet-beta and t-testnet
 CLUSTER=t
+API_URL="https://api.testnet.solana.com"     #  "https://api.mainnet-beta.solana.com"  or "https://api.testnet.solana.com"
 #если хочешь 1 ноду то в скобках указывается только один pub,vote,ip,TEXT и т.д. Добавить можно сколько угодно нод, но каждый новый параметр через пробел!  
 PUB_KEY=(pub1 pub2) #Identity
 VOTE=(vote1 vote2)

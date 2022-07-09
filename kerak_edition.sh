@@ -1,14 +1,24 @@
 #!/bin/bash
 export LC_NUMERIC="en_US.UTF-8"
-source $HOME/solana_bot/settings.sh
+source $HOME/solana_bot/settingsT.sh
 echo -e
 date
+$SOLANA_PATH validators -u$CLUSTER --output json-compact > $HOME/solana_bot/delinq$CLUSTER.txt
 for index in ${!PUB_KEY[*]}
 do
     PING=$(ping -c 4 ${IP[$index]} | grep transmitted | awk '{print $4}')
-    DELINQUEENT=$($SOLANA_PATH -u$CLUSTER validators --output json-compact | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .delinquent ')
-    BALANCE_TEMP=$($SOLANA_PATH balance ${PUB_KEY[$index]} -u$CLUSTER | awk '{print $1}')
-    BALANCE=$(printf "%.2f" $BALANCE_TEMP)
+    DELINQUEENT=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .delinquent ')
+    BALANCE_TEMP=$(curl --silent -X POST $API_URL -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0", "id":1, "method":"getBalance", "params":["'${PUB_KEY[$index]}'"]}' | jq '.result.value')
+    BALANCE=$(echo "scale=2; $BALANCE_TEMP/1000000000" | bc)
+        
+    if [[ $BALANCE == 0 ]]; then sleep 1
+    BALANCE_TEMP=$(curl --silent -X POST $API_URL -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0", "id":1, "method":"getBalance", "params":["'${PUB_KEY[$index]}'"]}' | jq '.result.value')
+    BALANCE=$(echo "scale=2; $BALANCE_TEMP/1000000000" | bc)
+    fi
+    simvol1=${BALANCE:0:1}
+    if [[ $simvol1 = . ]]; then BALANCE="0$BALANCE"
+    else BALANCE=$BALANCE
+    fi
       
     if (( $(bc <<< "$BALANCE < ${BALANCEWARN[$index]}") )) 
     then
@@ -39,41 +49,54 @@ then
 
 mesto_top_temp=$($SOLANA_PATH validators -u$CLUSTER --sort=credits -r -n > $HOME/solana_bot/mesto_top$CLUSTER.txt )
 lider=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | sed -n 2,1p |  awk '{print $2}')
-lider2=$($SOLANA_PATH validators -u$CLUSTER --output json-compact | jq '.validators[] | select(.identityPubkey == "'"$lider"'") | .epochCredits ')
-Average_temp=$($SOLANA_PATH validators -u$CLUSTER | grep "Average Stake-Weighted Skip Rate" | awk '{print $5}')
-Average="${Average_temp%?}"
+lider2=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"$lider"'") | .epochCredits ')
+Average_temp=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.averageStakeWeightedSkipRate')
+Average=$(printf "%.2f" $Average_temp)
 if [[ -z "$Average" ]]; then Average=0
    fi
 for index in ${!PUB_KEY[*]}
 do
-    epochCredits=$($SOLANA_PATH -u$CLUSTER validators --output json-compact | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .epochCredits ')
+    epochCredits=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .epochCredits ')
     mesto_top=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | grep ${PUB_KEY[$index]} | awk '{print $1}' | grep -oE "[0-9]*|[0-9]*.[0-9]")
     proc=$(bc <<< "scale=2; $epochCredits*100/$lider2")
     onboard=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/list?search_term='"${PUB_KEY[$index]}"'&limit=40&order_by=name&order=asc' | jq '.data[0].onboarding_number')
 #dali blokov
-    All_block=$($SOLANA_PATH leader-schedule -u$CLUSTER | grep ${PUB_KEY[$index]} | wc -l)
+    All_block=$(curl --silent -X POST ${API_URL} -H 'Content-Type: application/json' -d '{ "jsonrpc":"2.0","id":1, "method":"getLeaderSchedule", "params": [ null, { "identity": "'${PUB_KEY[$index]}'" }] }' | jq '.result."'${PUB_KEY[$index]}'"' | wc -l)
+    All_block=$(echo "${All_block} -2" | bc)
+    if (( $(bc <<< "$All_block < 0") )); then All_block=0
+       fi
 #done,sdelal,skipnul, skyp%
-    STRING2=$($SOLANA_PATH -v block-production -u$CLUSTER | grep ${PUB_KEY[$index]} | awk 'NR == 1'| awk '{print $2,$3,$4,$5}')
-    Done=$(echo "$STRING2" | awk '{print $1}')
-    if [[ -z "$Done" ]]; then Done=0
+    BLOCKS_PRODUCTION_JSON=$(curl --silent -X POST ${API_URL} -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1, "method":"getBlockProduction", "params": [{ "identity": "'${PUB_KEY[$index]}'" } ]}')
+    Done=$(echo ${BLOCKS_PRODUCTION_JSON} | jq '.result.value.byIdentity."'${PUB_KEY[$index]}'"[0]')
+    if (( $(bc <<< "$Done == null") )); then Done=0
         fi
-    sdelal_blokov=$(echo "$STRING2" | awk '{print $2}')
+    sdelal_blokov=$(echo ${BLOCKS_PRODUCTION_JSON} | jq '.result.value.byIdentity."'${PUB_KEY[$index]}'"[1]')
     if [[ -z "$sdelal_blokov" ]]; then sdelal_blokov=0
         fi
-    skipped=$(echo "$STRING2" | awk '{print $3}')
-    if [[ -z "$skipped" ]]; then skipped=0
-        fi
-    skip_temp=$(echo "$STRING2" | awk '{print $4}')
-    skip="${skip_temp%?}"
+    skipped=$(bc <<< "$Done - $sdelal_blokov")
+    
+    skip=$(bc <<< "scale=2; $skipped*100/$Done")
     if [[ -z "$skip" ]]; then skip=0
-        fi    
+        fi
+       
     if (( $(bc <<< "$skip <= $Average + $skip_dop") )); then skip=🟢$skip
     else skip=🔴$skip
         fi
-    BALANCE_TEMP=$($SOLANA_PATH balance ${PUB_KEY[$index]} -u$CLUSTER | awk '{print $1}')
-    BALANCE=$(printf "%.2f" $BALANCE_TEMP)
-    VOTE_BALANCE_TEMP=$($SOLANA_PATH balance ${VOTE[$index]} -u$CLUSTER | awk '{print $1}')
-    VOTE_BALANCE=$(printf "%.2f" $VOTE_BALANCE_TEMP)
+    
+    BALANCE_TEMP=$(curl --silent -X POST $API_URL -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0", "id":1, "method":"getBalance", "params":["'${PUB_KEY[$index]}'"]}' | jq '.result.value')
+    BALANCE=$(echo "scale=2; $BALANCE_TEMP/1000000000" | bc)
+    simvol1=${BALANCE:0:1}
+    if [[ $simvol1 = . ]]; then BALANCE="0$BALANCE"
+    else BALANCE=$BALANCE
+    fi
+    
+    VOTE_BALANCE_TEMP=$(curl --silent -X POST $API_URL -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0", "id":1, "method":"getBalance", "params":["'${VOTE[$index]}'"]}' | jq '.result.value')
+    VOTE_BALANCE=$(echo "scale=2; $VOTE_BALANCE_TEMP/1000000000" | bc)
+    simvol1=${VOTE_BALANCE:0:1}
+    if [[ $simvol1 = . ]]; then VOTE_BALANCE="0$VOTE_BALANCE"
+    else VOTE_BALANCE=$VOTE_BALANCE
+    fi
+    
     RESPONSE_STAKES=$($SOLANA_PATH stakes ${VOTE[$index]} -u$CLUSTER --output json-compact)
     ACTIVE=$(echo "scale=2; $(echo $RESPONSE_STAKES | jq -c '.[] | .activeStake' | paste -sd+ | bc)/1000000000" | bc)
     ACTIVATING=$(echo "scale=2; $(echo $RESPONSE_STAKES | jq -c '.[] | .activatingStake' | paste -sd+ | bc)/1000000000" | bc)
@@ -83,7 +106,7 @@ do
     if (( $(echo "$DEACTIVATING > 0" | bc -l) )); then DEACTIVATING=$DEACTIVATING⚠️
         fi
 
-    VER=$($SOLANA_PATH -u$CLUSTER validators --output json-compact | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .version '| sed 's/\"//g')
+    VER=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .version '| sed 's/\"//g')
     
     comission=$(bc <<< "scale=3; (($epochCredits*5) - ($sdelal_blokov*3750))/1000000")
     minus=${comission:0:1}
@@ -153,4 +176,3 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
 ['"$EPOCH"'] | ['"$EPOCH_PERCENT"'] 
 End_Epoch '"$END_EPOCH"'</code>", "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
     fi
-
