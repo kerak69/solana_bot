@@ -1,6 +1,6 @@
 #!/bin/bash
 export LC_NUMERIC="en_US.UTF-8"
-source $HOME/solana_bot/settingsT.sh
+source $HOME/solana_bot/settings.sh
 echo -e
 date
 $SOLANA_PATH validators -u$CLUSTER --output json-compact > $HOME/solana_bot/delinq$CLUSTER.txt
