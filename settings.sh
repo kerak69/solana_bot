@@ -14,9 +14,11 @@ CHAT_ID_ALARM=-111111111 #чат №1 для тревожных сообщени
 CHAT_ID_LOG=-111111112 #чат №2 для  Info о ноде , в котором віключені уведомления
 BALANCEWARN=(1 1) # если меньше этого числа на балансе то будет тревожное сообщение!
 skip_dop=15     #число  которое + к среднему скипу по кластеру, чтоб вывести красн. кружок  возле скипа при его  превышении
+TIME_Info2=15     #указать час когда  нужно вывести инфо2. смотри кокое время на сервере по команде date!
 #text,alarm text...
 TEXT_ALARM=("delinquent Noda1!" "delinquent Noda2!")
 INET_ALARM=("Пропал inet Noda1!" "Пропал inet Noda2!")
 BALANCE_ALARM=("Пополни Identity Noda1!" "Пополни Identity Noda2!" )
 TEXT_NODE=("Info Noda1" "Info Noda2")
+TEXT_NODE2=("Info2 Noda1" "Info2 Noda2")
 TEXT_INFO_EPOCH="Info Epoch Testnet" # заголовок для инфо, или  Testnet или Mainnet

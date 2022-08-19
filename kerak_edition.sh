@@ -44,8 +44,7 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
     fi
 done
 
-    if (( $(echo "$(date +%M) < 5" | bc -l) ))
-then
+if (( $(echo "$(date +%M) < 5" | bc -l) )); then
 
 mesto_top_temp=$($SOLANA_PATH validators -u$CLUSTER --sort=credits -r -n > $HOME/solana_bot/mesto_top$CLUSTER.txt )
 lider=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | sed -n 2,1p |  awk '{print $2}')
@@ -54,8 +53,14 @@ Average_temp=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.averageStakeWeight
 Average=$(printf "%.2f" $Average_temp)
 if [[ -z "$Average" ]]; then Average=0
    fi
-for index in ${!PUB_KEY[*]}
-do
+  
+RESPONSE_EPOCH=$($SOLANA_PATH epoch-info -u$CLUSTER > $HOME/solana_bot/temp$CLUSTER.txt)
+EPOCH=$(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch:" | awk '{print $2}')
+EPOCH_PERCENT=$(printf "%.2f" $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed Percent" | awk '{print $4}' | grep -oE "[0-9]*|[0-9]*.[0-9]*" | awk 'NR==1 {print; exit}'))"%"
+END_EPOCH=$(echo $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed Time" | grep -o '(.*)' | sed "s/^(//" | awk '{$NF="";sub(/[ \t]+$/,"")}1'))  
+  
+    for index in ${!PUB_KEY[*]}
+    do
     epochCredits=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .epochCredits ')
     mesto_top=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | grep ${PUB_KEY[$index]} | awk '{print $1}' | grep -oE "[0-9]*|[0-9]*.[0-9]")
     proc=$(bc <<< "scale=2; $epochCredits*100/$lider2")
@@ -161,18 +166,47 @@ deactivating >['"$DEACTIVATING"']
 balance>['"$BALANCE"']  
 vote_balance>>['"$VOTE_BALANCE"']
 comission>['"$comission"' sol]</code>"'
-     fi
+       fi
     echo "Нода в порядке" ${TEXT_NODE[$index]}
 curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
 "text":'"$info"',  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
     echo -e "\n"
 done
-    RESPONSE_EPOCH=$($SOLANA_PATH epoch-info -u$CLUSTER > $HOME/solana_bot/temp$CLUSTER.txt)
+
+       if (( $(echo "$(date +%H) == $TIME_Info2" | bc -l) )) && (( $(echo "$(date +%M) < 5" | bc -l) )); then
+       let EPOCH=$EPOCH-1
+       for index in ${!PUB_KEY[*]}
+       do
+
+       info2=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/details?pk='"${PUB_KEY[$index]}"'&epoch='"$EPOCH"'' | jq '.stats' > $HOME/solana_bot/info2$CLUSTER.txt)
+
+       state_action=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.state_action'| sed 's/\"//g')
+       asn=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.epoch_data_center.asn')
+       location=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.epoch_data_center.location' | sed 's/\"//g')
+       data_center_percent_temp=$(cat $HOME/solana_bot/info2$CLUSTER.txt | grep "data_center_stake_percent" | awk '{print $2}' | sed 's/\,//g')
+       data_center_percent=$(printf "%.2f" $data_center_percent_temp)
+       reported_metrics_summar=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.self_reported_metrics_summary.reason' | sed 's/\"//g' )
+
+       PUB=$(echo ${PUB_KEY[$index]:0:8})
+       info2='"
+<b>'"${TEXT_NODE2[$index]} epoch $EPOCH"'</b>['"$PUB"'] <code>
+*'$state_action' 
+*'"$asn"' '"$location"' '"$data_center_percent"'%
+*'"$reported_metrics_summar"'</code>"'
+         if [[ $reported_metrics_summar != null ]]; then
+curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
+"text":'"$info2"',  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
+       echo -e "\n"
+       else
+       echo "${TEXT_NODE2[$index]} Stake-o-matic еще не отработал. Информации нет"
+curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
+"text":"${TEXT_NODE2[$index]} Stake-o-matic еще не отработал. Информации нет",  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
+           fi
+       done         
+         fi
     EPOCH=$(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch:" | awk '{print $2}')
-    EPOCH_PERCENT=$(printf "%.2f" $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed Percent" | awk '{print $4}' | grep -oE "[0-9]*|[0-9]*.[0-9]*" | awk 'NR==1 {print; exit}'))"%"
-    END_EPOCH=$(echo $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed Time" | grep -o '(.*)' | sed "s/^(//" | awk '{$NF="";sub(/[ \t]+$/,"")}1'))    
     echo "$TEXT_INFO_EPOCH" 
 curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'","text":"<b>'"$TEXT_INFO_EPOCH"'</b> <code>
 ['"$EPOCH"'] | ['"$EPOCH_PERCENT"'] 
 End_Epoch '"$END_EPOCH"'</code>", "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
-    fi
+fi
