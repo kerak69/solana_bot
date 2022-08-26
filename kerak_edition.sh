@@ -198,9 +198,9 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
 "text":'"$info2"',  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
        echo -e "\n"
        else
-       echo "${TEXT_NODE2[$index]} Stake-o-matic еще не отработал. Информации нет"
+       echo "'"${TEXT_NODE2[$index]}"' Stake-o-matic еще не отработал. Информации нет"
 curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
-"text":"${TEXT_NODE2[$index]} Stake-o-matic еще не отработал. Информации нет",  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
+"text":"'"${TEXT_NODE2[$index]}"' Stake-o-matic еще не отработал. Информации нет",  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
            fi
        done         
          fi
