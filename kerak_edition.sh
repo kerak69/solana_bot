@@ -28,7 +28,7 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
     if [[ $PING == 0 ]] && [[ $DELINQUEENT == true ]]
     then
        echo ${INET_ALARM[$index]} ${TEXT_ALARM[$index]}
-curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_ALARM"'","text":"'"${INET_ALARM[$index]}"' '"${TEXT_ALARM[$index]}"' '"$PUB_KEY[$index]"'"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
+curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_ALARM"'","text":"'"${INET_ALARM[$index]}"' '"${TEXT_ALARM[$index]}"' '"${PUB_KEY[$index]}"'"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
     echo -e "\n"
     elif [[ $PING == 0 ]]
     then
