@@ -125,7 +125,11 @@ END_EPOCH=$(echo $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed
     if [[ $minus = . ]]; then comission=0$comission
     else comission=$comission
     fi
-    
+
+    REJECT=$(curl -sSfL https://kyc-api.vercel.app/api/validators/${PUB_KEY[$index]} | jq .state | tr -d '"')
+    if [ "$REJECT" = "Rejected" ]; then REJECT="🔴$REJECT"
+    fi
+
     PUB=$(echo ${PUB_KEY[$index]:0:10})
     info='"
 <b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']<code>
@@ -165,7 +169,8 @@ activating >>>['"$ACTIVATING"']
 deactivating >['"$DEACTIVATING"']
 balance>['"$BALANCE"']  
 vote_balance>>['"$VOTE_BALANCE"']
-comission>['"$comission"' sol]</code>"'
+comission>['"$comission"' sol]
+kys_status>['"$REJECT"']</code>"'
        fi
     echo "Нода в порядке" ${TEXT_NODE[$index]}
 curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
