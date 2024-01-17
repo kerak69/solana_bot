@@ -47,7 +47,7 @@ done
 if (( $(echo "$(date +%M) < 5" | bc -l) )); then
 
 mesto_top_temp=$($SOLANA_PATH validators -u$CLUSTER --sort=credits -r -n > $HOME/solana_bot/mesto_top$CLUSTER.txt )
-lider=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | sed -n 2,1p |  awk '{print $2}')
+lider=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | sed -n 2,1p |  awk '{print $3}')
 lider2=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"$lider"'") | .epochCredits ')
 Average_temp=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.averageStakeWeightedSkipRate')
 Average=$(printf "%.2f" $Average_temp)
@@ -64,7 +64,7 @@ END_EPOCH=$(echo $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed
     epochCredits=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .epochCredits ')
     mesto_top=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | grep ${PUB_KEY[$index]} | awk '{print $1}' | grep -oE "[0-9]*|[0-9]*.[0-9]")
     proc=$(bc <<< "scale=2; $epochCredits*100/$lider2")
-    onboard=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/list?search_term='"${PUB_KEY[$index]}"'&limit=40&order_by=name&order=asc' | jq '.data[0].onboarding_number')
+    onboard=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/list?search_term='"${PUB_KEY[$index]}"'&limit=40&order_by=name&order=asc' | jq '.data[0].onboardingNumber')
 #dali blokov
     All_block=$(curl --silent -X POST ${API_URL} -H 'Content-Type: application/json' -d '{ "jsonrpc":"2.0","id":1, "method":"getLeaderSchedule", "params": [ null, { "identity": "'${PUB_KEY[$index]}'" }] }' | jq '.result."'${PUB_KEY[$index]}'"' | wc -l)
     All_block=$(echo "${All_block} -2" | bc)
@@ -142,7 +142,8 @@ activating >>>['"$ACTIVATING"']
 deactivating >['"$DEACTIVATING"']
 balance>['"$BALANCE"']  
 vote_balance>>['"$VOTE_BALANCE"']
-comission>['"$comission"' sol]</code>"'
+comission>['"$comission"' sol]
+kys_status>['"$REJECT"']</code>"'
     
     if [[ $onboard == null ]]; then info='"
 <b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']<code>
@@ -155,7 +156,8 @@ activating >>>['"$ACTIVATING"']
 deactivating >['"$DEACTIVATING"']
 balance>['"$BALANCE"']  
 vote_balance>>['"$VOTE_BALANCE"']
-comission>['"$comission"' sol]</code>"'
+comission>['"$comission"' sol]
+kys_status>['"$REJECT"']</code>"'
        fi
 
     if [[ $CLUSTER == m ]]; then info='"
