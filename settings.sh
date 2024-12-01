@@ -22,3 +22,7 @@ BALANCE_ALARM=("Пополни Identity Noda1!" "Пополни Identity Noda2!"
 TEXT_NODE=("Info Noda1" "Info Noda2")
 TEXT_NODE2=("Info2 Noda1" "Info2 Noda2")
 TEXT_INFO_EPOCH="Info Epoch Testnet" # заголовок для инфо, или  Testnet или Mainnet
+ICON_IP=`echo -e '\U0001F310'`
+ICON_RED=`echo -e '\U0001F534'`
+icon_kycStatus=`echo -e '\U0001f530'`
+icon_state=`echo -e '\U0002705'`

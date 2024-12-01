@@ -46,6 +46,7 @@ done
 
 if (( $(echo "$(date +%M) < 5" | bc -l) )); then
 
+gossip=$($SOLANA_PATH gossip -u$CLUSTER > $HOME/solana_bot/ip$CLUSTER.txt)
 mesto_top_temp=$($SOLANA_PATH validators -u$CLUSTER --sort=credits -r -n > $HOME/solana_bot/mesto_top$CLUSTER.txt )
 lider=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | sed -n 2,1p |  awk '{print $3}')
 lider2=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"$lider"'") | .epochCredits ')
@@ -61,10 +62,11 @@ END_EPOCH=$(echo $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed
   
     for index in ${!PUB_KEY[*]}
     do
+    ip=$(cat $HOME/solana_bot/ip$CLUSTER.txt | grep ${PUB_KEY[$index]} | awk '{print $1}')
     epochCredits=$(cat $HOME/solana_bot/delinq$CLUSTER.txt | jq '.validators[] | select(.identityPubkey == "'"${PUB_KEY[$index]}"'" ) | .epochCredits ')
     mesto_top=$(cat $HOME/solana_bot/mesto_top$CLUSTER.txt | grep ${PUB_KEY[$index]} | awk '{print $1}' | grep -oE "[0-9]*|[0-9]*.[0-9]")
     proc=$(bc <<< "scale=2; $epochCredits*100/$lider2")
-    onboard=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/list?search_term='"${PUB_KEY[$index]}"'&limit=40&order_by=name&order=asc' | jq '.data[0].onboardingnumber')
+    onboard=$(curl -s -X GET 'https://api.solana.org/api/validators/'"${PUB_KEY[$index]}" | jq -r '.onboardingNumber')
 #dali blokov
     All_block=$(curl --silent -X POST ${API_URL} -H 'Content-Type: application/json' -d '{ "jsonrpc":"2.0","id":1, "method":"getLeaderSchedule", "params": [ null, { "identity": "'${PUB_KEY[$index]}'" }] }' | jq '.result."'${PUB_KEY[$index]}'"' | wc -l)
     All_block=$(echo "${All_block} -2" | bc)
@@ -128,7 +130,8 @@ END_EPOCH=$(echo $(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch Completed
     
     PUB=$(echo ${PUB_KEY[$index]:0:10})
     info='"
-<b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']<code>
+<b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']
+'"$ICON_IP $ip"'<code>
 '"All:"$All_block" Done:"$Done" skipped:"$skipped""'
 '"skip:"$skip%" Average:"$Average%""'
 сredits >['"$epochCredits"'] ['"$proc"'%]
@@ -141,7 +144,8 @@ vote_balance>>['"$VOTE_BALANCE"']
 comission>['"$comission"' sol]</code>"'
     
     if [[ $onboard == null ]]; then info='"
-<b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']<code>
+<b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']
+'"$ICON_IP $ip"'<code>
 '"All:"$All_block" Done:"$Done" skipped:"$skipped""'
 '"skip:"$skip%" Average:"$Average%""'
 сredits >['"$epochCredits"'] ['"$proc"'%]
@@ -155,7 +159,8 @@ comission>['"$comission"' sol]</code>"'
        fi
 
     if [[ $CLUSTER == m ]]; then info='"
-<b>'"${TEXT_NODE[$index]}"'</b> ['"$PUB"'] ['"$VER"']<code>
+<b>'"${TEXT_NODE[$index]}"'</b> '"[$PUB]"' ['"$VER"']
+'"$ICON_IP $ip"'<code>
 '"All:"$All_block" Done:"$Done" skipped:"$skipped""'
 '"skip:"$skip%" Average:"$Average%""'
 сredits >['"$epochCredits"'] ['"$proc"'%]
@@ -174,34 +179,20 @@ curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_i
 done
 
        if (( $(echo "$(date +%H) == $TIME_Info2" | bc -l) )) && (( $(echo "$(date +%M) < 5" | bc -l) )); then
-       let EPOCH=$EPOCH-1
        for index in ${!PUB_KEY[*]}
        do
 
-       info2=$(curl -s -X GET 'https://kyc-api.vercel.app/api/validators/details?pk='"${PUB_KEY[$index]}"'&epoch='"$EPOCH"'' | jq '.stats' > $HOME/solana_bot/info2$CLUSTER.txt)
-
-       state_action=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.state_action'| sed 's/\"//g')
-       asn=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.epoch_data_center.asn')
-       location=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.epoch_data_center.location' | sed 's/\"//g')
-       data_center_percent_temp=$(cat $HOME/solana_bot/info2$CLUSTER.txt | grep "data_center_stake_percent" | awk '{print $2}' | sed 's/\,//g')
-       data_center_percent=$(printf "%.2f" $data_center_percent_temp)
-       reported_metrics_summar=$(cat $HOME/solana_bot/info2$CLUSTER.txt | jq '.self_reported_metrics_summary.reason' | sed 's/\"//g' )
+       info2=$(curl -s -X GET 'https://api.solana.org/api/validators/'"${PUB_KEY[$index]}")
+       state=$(echo "$info2" | jq -r '.state')
+       kycStatus=$(echo $info2 | jq '.kycStatus' | sed 's/\"//g')
 
        PUB=$(echo ${PUB_KEY[$index]:0:8})
        info2='"
-<b>'"${TEXT_NODE2[$index]} epoch $EPOCH"'</b>['"$PUB"'] <code>
-*'$state_action' 
-*'"$asn"' '"$location"' '"$data_center_percent"'%
-*'"$reported_metrics_summar"'</code>"'
-         if [[ $reported_metrics_summar != null ]]; then
+<b>'"${TEXT_NODE2[$index]} epoch $EPOCH"'</b>['"$PUB"'] <code></code>
+'"$icon_state SFDP:<b>$state</b>"'<code>
+'"$icon_kycStatus $kycStatus"'</code>"'
 curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
 "text":'"$info2"',  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
-       echo -e "\n"
-       else
-       echo "'"${TEXT_NODE2[$index]}"' Stake-o-matic еще не отработал. Информации нет"
-curl --header 'Content-Type: application/json' --request 'POST' --data '{"chat_id":"'"$CHAT_ID_LOG"'",
-"text":"'"${TEXT_NODE2[$index]}"' Stake-o-matic еще не отработал. Информации нет",  "parse_mode": "html"}' "https://api.telegram.org/bot$BOT_TOKEN/sendMessage"
-           fi
        done         
          fi
     EPOCH=$(cat $HOME/solana_bot/temp$CLUSTER.txt | grep "Epoch:" | awk '{print $2}')
